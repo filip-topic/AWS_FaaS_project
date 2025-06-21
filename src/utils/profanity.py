@@ -5,4 +5,13 @@ BAD_WORDS = {
 }
 
 def contains_bad_words(tokens):
-    return any(w in BAD_WORDS for w in tokens) 
+    return any(w in BAD_WORDS for w in tokens)
+
+def check_profanity(text):
+    """Check if text contains profanity."""
+    if not text:
+        return False
+    
+    text_lower = text.lower()
+    words = text_lower.split()
+    return any(word in BAD_WORDS for word in words) 

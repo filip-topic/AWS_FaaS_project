@@ -2,6 +2,11 @@ import boto3
 
 # LocalStack endpoints
 ENDPOINT_URL = "http://localhost:4566"
+REGION = "us-east-1"  # Default region for LocalStack
+
+# Dummy credentials for LocalStack
+AWS_ACCESS_KEY_ID = "test"
+AWS_SECRET_ACCESS_KEY = "test"
 
 # Resource names
 S3_INPUT_BUCKET = "reviews-input"
@@ -60,9 +65,27 @@ def put_ssm_param(ssm, name, value):
     print(f"Set SSM param: {name} = {value}")
 
 def main():
-    s3 = boto3.client("s3", endpoint_url=ENDPOINT_URL)
-    ddb = boto3.client("dynamodb", endpoint_url=ENDPOINT_URL)
-    ssm = boto3.client("ssm", endpoint_url=ENDPOINT_URL)
+    s3 = boto3.client(
+        "s3", 
+        endpoint_url=ENDPOINT_URL, 
+        region_name=REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    )
+    ddb = boto3.client(
+        "dynamodb", 
+        endpoint_url=ENDPOINT_URL, 
+        region_name=REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    )
+    ssm = boto3.client(
+        "ssm", 
+        endpoint_url=ENDPOINT_URL, 
+        region_name=REGION,
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    )
 
     # S3 buckets
     reset_s3(s3, S3_INPUT_BUCKET)

@@ -15,6 +15,8 @@ LAMBDA_NAMES=(
 
 ROLE_ARN="arn:aws:iam::000000000000:role/lambda-role"
 RUNTIME="python3.11"
+LOCALSTACK_ENDPOINT="http://localhost:4566"
+REGION="us-east-1"
 
 # Deploy each lambda
 for i in ${!LAMBDA_DIRS[@]}; do
@@ -22,11 +24,16 @@ for i in ${!LAMBDA_DIRS[@]}; do
   NAME=${LAMBDA_NAMES[$i]}
   ZIP_FILE="$DIR/lambda.zip"
 
+  echo "Preparing $NAME..."
+  
+  # Copy utils module to Lambda directory
+  cp -r src/utils "$DIR/"
+  
   echo "Zipping $NAME..."
   (cd "$DIR" && zip -r lambda.zip . > /dev/null)
 
   echo "Deleting existing function (if any): $NAME"
-  awslocal lambda delete-function --function-name "$NAME" 2>/dev/null || true
+  awslocal lambda delete-function --function-name "$NAME" --region $REGION 2>/dev/null || true
 
   echo "Creating function: $NAME"
   awslocal lambda create-function \
@@ -35,7 +42,12 @@ for i in ${!LAMBDA_DIRS[@]}; do
     --handler handler.handler \
     --role $ROLE_ARN \
     --zip-file fileb://$ZIP_FILE \
-    --timeout 30
+    --timeout 30 \
+    --region $REGION \
+    --environment Variables='{STAGE=local}'
+
+  # Clean up copied utils directory
+  rm -rf "$DIR/utils"
 
 done
 
