@@ -5,10 +5,10 @@ echo "=== Setting up LocalStack infrastructure ==="
 python src/infrastructure/setup_localstack_resources.py
 
 echo "=== Building Lambda packages with dependencies ==="
-python build_lambda_packages.py
+python scripts/build_lambda_packages.py
 
 echo "=== Deploying Lambda functions ==="
-python deploy_lambdas_python.py
+python scripts/deploy_lambdas_python.py
 
 echo "=== Waiting for Lambda functions to be ready ==="
 sleep 10
@@ -20,7 +20,10 @@ echo "=== Waiting for notifications to be configured ==="
 sleep 5
 
 echo "=== Testing setup ==="
-python test_setup.py
+python tests/test_setup.py
+
+echo "=== Running manual test ==="
+python tests/manual_test.py
 
 echo "=== Running unit tests ==="
 python -m pytest tests/test_utils.py -v
