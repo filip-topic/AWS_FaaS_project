@@ -41,6 +41,19 @@ def build_lambda_packages():
                     zipf.write(file_path, arcname)
                     print(f"    + {arcname}")
             print(f"  ✓ Added utils module")
+            
+            # Add data directory (for stopwords.txt)
+            data_dir = "data"
+            if os.path.exists(data_dir):
+                for root, dirs, files in os.walk(data_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.join("data", os.path.relpath(file_path, data_dir))
+                        zipf.write(file_path, arcname)
+                        print(f"    + {arcname}")
+                print(f"  ✓ Added data directory")
+            else:
+                print(f"  ⚠ Data directory not found: {data_dir}")
         
         print(f"  ✓ Created {zip_path}")
     

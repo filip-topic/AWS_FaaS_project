@@ -4,15 +4,32 @@ import re
 
 # 1. Stop-words
 STOPWORDS = set()
-stopwords_path = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), #"..", "..",
-    "data", "stopwords.txt"
-)
-try:
-    with open(stopwords_path, encoding="utf-8") as fh:
-        STOPWORDS |= {w.strip().lower() for w in fh if w.strip()}
-except Exception as exc:
-    print(f"[WARN] Could not load stopwords ({exc})")
+
+# Try multiple possible paths for stopwords.txt
+possible_paths = [
+    # Development path (from src/utils/)
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "stopwords.txt"),
+    # Lambda path (if data is included in the package)
+    os.path.join(os.path.dirname(__file__), "..", "..", "data", "stopwords.txt"),
+    # Direct path (if data is in the same directory as utils)
+    os.path.join(os.path.dirname(__file__), "..", "data", "stopwords.txt"),
+]
+
+stopwords_loaded = False
+for stopwords_path in possible_paths:
+    try:
+        with open(stopwords_path, encoding="utf-8") as fh:
+            STOPWORDS |= {w.strip().lower() for w in fh if w.strip()}
+        print(f"[INFO] Successfully loaded stopwords from: {stopwords_path}")
+        stopwords_loaded = True
+        break
+    except Exception as exc:
+        continue
+
+if not stopwords_loaded:
+    print(f"[WARN] Could not load stopwords from any of the attempted paths: {possible_paths}")
+    # Fallback: use a minimal set of common stopwords
+    STOPWORDS = {"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by", "is", "are", "was", "were", "be", "been", "have", "has", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "can", "this", "that", "these", "those", "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them", "my", "your", "his", "her", "its", "our", "their", "mine", "yours", "hers", "ours", "theirs"}
 
 
 # 2. Contractions
