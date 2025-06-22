@@ -8,6 +8,13 @@ REGION = "us-east-1"
 AWS_ACCESS_KEY_ID = "test"
 AWS_SECRET_ACCESS_KEY = "test"
 
+BUCKETS = [
+    "reviews-input",
+    "reviews-preprocessed",
+    "reviews-checked",
+    "reviews-processed"
+]
+
 def test_setup():
     """Test that all components are properly configured."""
     
@@ -61,8 +68,7 @@ def test_setup():
         bucket_names = [b['Name'] for b in buckets['Buckets']]
         print(f"Found buckets: {bucket_names}")
         
-        required_buckets = ['reviews-input', 'reviews-processed']
-        for bucket in required_buckets:
+        for bucket in BUCKETS:
             if bucket in bucket_names:
                 print(f"✓ {bucket} bucket exists")
             else:
@@ -72,26 +78,17 @@ def test_setup():
     
     # 3. Check S3 notifications
     print("\n3. Checking S3 notifications...")
-    try:
-        # Check input bucket notifications
-        input_notifications = s3_client.get_bucket_notification_configuration(Bucket='reviews-input')
-        if 'LambdaFunctionConfigurations' in input_notifications:
-            print("✓ Input bucket has Lambda notifications")
-            for config in input_notifications['LambdaFunctionConfigurations']:
-                print(f"  - {config['LambdaFunctionArn']}")
-        else:
-            print("✗ Input bucket missing Lambda notifications")
-        
-        # Check processed bucket notifications
-        processed_notifications = s3_client.get_bucket_notification_configuration(Bucket='reviews-processed')
-        if 'LambdaFunctionConfigurations' in processed_notifications:
-            print("✓ Processed bucket has Lambda notifications")
-            for config in processed_notifications['LambdaFunctionConfigurations']:
-                print(f"  - {config['LambdaFunctionArn']}")
-        else:
-            print("✗ Processed bucket missing Lambda notifications")
-    except Exception as e:
-        print(f"Error checking S3 notifications: {e}")
+    for bucket in BUCKETS[:-1]:  # Only check notifications for input, preprocessed, checked
+        try:
+            notifications = s3_client.get_bucket_notification_configuration(Bucket=bucket)
+            if 'LambdaFunctionConfigurations' in notifications:
+                print(f"✓ {bucket} has Lambda notifications:")
+                for config in notifications['LambdaFunctionConfigurations']:
+                    print(f"  - {config['LambdaFunctionArn']}")
+            else:
+                print(f"✗ {bucket} missing Lambda notifications")
+        except Exception as e:
+            print(f"Error checking notifications for {bucket}: {e}")
     
     # 4. Check SSM parameters
     print("\n4. Checking SSM parameters...")

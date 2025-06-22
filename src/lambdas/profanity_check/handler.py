@@ -24,18 +24,19 @@ ddb = boto3.client("dynamodb", endpoint_url=endpoint_url)
 
 def handler(event, context):
     try:
-        processed_bucket = get_param("/dic2025/a3/bucket/processed")
+        preprocessed_bucket = "reviews-preprocessed"
+        checked_bucket = "reviews-checked"
         review_table = get_param("/dic2025/a3/table/review_metadata")
         stats_table = get_param("/dic2025/a3/table/customer_stats")
         
-        print(f"Processing with processed_bucket={processed_bucket}, review_table={review_table}, stats_table={stats_table}")
+        print(f"Processing with preprocessed_bucket={preprocessed_bucket}, checked_bucket={checked_bucket}, review_table={review_table}, stats_table={stats_table}")
         
         for record in event["Records"]:
             key = record["s3"]["object"]["key"]
             print(f"Processing key: {key}")
             
             try:
-                obj = s3.get_object(Bucket=processed_bucket, Key=key)
+                obj = s3.get_object(Bucket=preprocessed_bucket, Key=key)
                 review = json.loads(obj["Body"].read())
                 
                 print(f"Review data: customerId={review['customerId']}, reviewId={review['reviewId']}")
@@ -65,19 +66,22 @@ def handler(event, context):
                 has_profanity = check_profanity(review.get("reviewText", ""))
                 print(f"Profanity check result: {has_profanity}")
                 
-                # Store in review metadata table
+                # Use update_item to only set isUnpolite, preserving other attributes
                 try:
-                    ddb.put_item(
+                    ddb.update_item(
                         TableName=review_table,
-                        Item={
+                        Key={
                             "customerId": {"S": review["customerId"]},
-                            "reviewId": {"S": review["reviewId"]},
-                            "isUnpolite": {"BOOL": has_profanity}
+                            "reviewId": {"S": review["reviewId"]}
+                        },
+                        UpdateExpression="SET isUnpolite = :isUnpolite",
+                        ExpressionAttributeValues={
+                            ":isUnpolite": {"BOOL": has_profanity}
                         }
                     )
-                    print(f"Stored review metadata: isUnpolite={has_profanity}")
+                    print(f"Updated review metadata: isUnpolite={has_profanity}")
                 except Exception as e:
-                    print(f"Error storing review metadata: {e}")
+                    print(f"Error updating review metadata: {e}")
                     raise
                 
                 # Update customer stats only if there's profanity
@@ -126,7 +130,14 @@ def handler(event, context):
                 else:
                     print(f"No profanity detected, skipping stats update")
                 
-                print(f"Successfully processed profanity check for {key}, has_profanity={has_profanity}")
+                # Write to next bucket for chaining
+                s3.put_object(
+                    Bucket=checked_bucket,
+                    Key=key,
+                    Body=json.dumps(review).encode("utf-8"),
+                    ContentType="application/json"
+                )
+                print(f"Successfully processed and stored {key} in checked bucket")
                 
             except Exception as e:
                 print(f"Error processing record {key}: {e}")

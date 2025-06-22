@@ -24,9 +24,8 @@ s3 = boto3.client("s3", endpoint_url=endpoint_url)
 def handler(event, context):
     try:
         input_bucket = get_param("/dic2025/a3/bucket/input")
-        output_bucket = get_param("/dic2025/a3/bucket/processed")
-        
-        print(f"Processing with input_bucket={input_bucket}, output_bucket={output_bucket}")
+        preprocessed_bucket = "reviews-preprocessed"
+        print(f"Processing with input_bucket={input_bucket}, preprocessed_bucket={preprocessed_bucket}")
         
         for record in event["Records"]:
             key = record["s3"]["object"]["key"]
@@ -41,7 +40,7 @@ def handler(event, context):
             
             # Store cleaned review in processed bucket
             s3.put_object(
-                Bucket=output_bucket,
+                Bucket=preprocessed_bucket,
                 Key=key,
                 Body=json.dumps(review).encode("utf-8"),
                 ContentType="application/json"

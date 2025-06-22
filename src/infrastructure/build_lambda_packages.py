@@ -28,13 +28,18 @@ def build_lambda_packages():
             zipf.write(handler_path, "handler.py")
             print(f"  ✓ Added handler.py")
             
-            # Add utils module
+            # Add utils module (exclude __pycache__ and .pyc files)
             utils_dir = "src/utils"
             for root, dirs, files in os.walk(utils_dir):
+                # Exclude __pycache__
+                dirs[:] = [d for d in dirs if d != "__pycache__"]
                 for file in files:
+                    if file.endswith('.pyc'):
+                        continue
                     file_path = os.path.join(root, file)
                     arcname = os.path.join("utils", os.path.relpath(file_path, utils_dir))
                     zipf.write(file_path, arcname)
+                    print(f"    + {arcname}")
             print(f"  ✓ Added utils module")
         
         print(f"  ✓ Created {zip_path}")
