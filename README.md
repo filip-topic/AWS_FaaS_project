@@ -12,7 +12,13 @@ The application consists of three Lambda functions in a processing pipeline:
 
 ### Data Flow:
 ```
-S3 Upload → Preprocessing → Profanity Check → Sentiment Analysis → Customer Banning
+S3 Upload (reviews-input)
+  → Preprocessing Lambda
+    → S3 (reviews-preprocessed)
+      → Profanity Check Lambda
+        → S3 (reviews-checked)
+          → Sentiment Analysis Lambda
+            → S3 (reviews-processed)
 ```
 
 ## 📁 Project Structure
@@ -25,7 +31,10 @@ assignment_3/
 │   │   ├── profanity_check/        # Profanity detection Lambda
 │   │   └── sentiment_analysis/     # Sentiment analysis Lambda
 │   ├── infrastructure/
-│   │   └── setup_localstack_resources.py  # AWS resource setup
+│   │   ├── setup_localstack_resources.py  # AWS resource setup
+│   │   ├── build_lambda_packages.py       # Build Lambda deployment packages
+│   │   ├── deploy_lambdas_python.py       # Deploy Lambda functions
+│   │   └── setup_s3_notifications.py      # S3 event notification setup
 │   └── utils/
 │       ├── ssm_utils.py            # SSM parameter utilities
 │       ├── text_preprocessing.py   # Text preprocessing utilities
@@ -39,7 +48,9 @@ assignment_3/
 │   └── reviews_devset.json         # Review dataset
 ├── requirements.txt                 # Python dependencies
 ├── run_analysis.py                  # Review analysis runner
-└── show_results.py                  # Results display script
+├── show_results.py                  # Results display script
+├── setup_and_test.sh                # Full setup and test script
+└── ...
 ```
 
 ## 🚀 Quick Start
@@ -54,19 +65,38 @@ pip install -r requirements.txt
 localstack start
 ```
 
-### 3. Setup AWS Resources
+### 3. Full Setup & Test (Recommended)
 ```bash
+chmod +x setup_and_test.sh
+./setup_and_test.sh
+```
+
+This script will:
+- Setup all AWS resources (S3, DynamoDB, SSM)
+- Build Lambda deployment packages
+- Deploy Lambda functions
+- Configure S3 event notifications
+- Run setup, manual, unit, and integration tests
+
+### 4. Manual Step-by-Step Setup (Advanced)
+```bash
+# Setup infrastructure
 python src/infrastructure/setup_localstack_resources.py
-```
 
-### 4. Run Review Analysis
-```bash
-python run_analysis.py
-```
+# Build Lambda packages
+python src/infrastructure/build_lambda_packages.py
 
-### 5. View Results
-```bash
-python show_results.py
+# Deploy Lambda functions
+python src/infrastructure/deploy_lambdas_python.py
+
+# Setup S3 event notifications
+python src/infrastructure/setup_s3_notifications.py
+
+# Run tests
+python src/tests/test_setup.py
+python src/tests/manual_test.py
+python -m pytest src/tests/test_utils.py -v
+python -m pytest src/tests/test_integration.py -v
 ```
 
 ## 🔧 Infrastructure Setup
@@ -79,7 +109,9 @@ This script creates and configures all AWS resources needed for the review analy
 
 **S3 Buckets:**
 - `reviews-input` - Receives new review uploads
-- `reviews-processed` - Stores preprocessed reviews
+- `reviews-preprocessed` - Stores preprocessed reviews (intermediate)
+- `reviews-checked` - Stores profanity-checked reviews (intermediate)
+- `reviews-processed` - Stores fully processed reviews
 
 **DynamoDB Tables:**
 - `review-metadata` - Stores review analysis results (PK: customerId, SK: reviewId)
@@ -105,6 +137,21 @@ python src/infrastructure/setup_localstack_resources.py
 # Run again to reset/resetup resources
 python src/infrastructure/setup_localstack_resources.py
 ```
+
+## 🔄 Lambda Deployment & S3 Notifications
+
+- **Build Lambda Packages:**
+  - `python src/infrastructure/build_lambda_packages.py`
+- **Deploy Lambda Functions:**
+  - `python src/infrastructure/deploy_lambdas_python.py`
+- **Setup S3 Event Notifications:**
+  - `python src/infrastructure/setup_s3_notifications.py`
+
+The notification setup script ensures:
+- S3 uploads to `reviews-input` trigger the Preprocessing Lambda
+- New files in `reviews-preprocessed` trigger the Profanity Check Lambda
+- New files in `reviews-checked` trigger the Sentiment Analysis Lambda
+- All required Lambda permissions are set
 
 ## 📊 Review Analysis
 
@@ -134,14 +181,19 @@ Analyzes the `reviews_devset.json` file and provides:
 
 ## 🧪 Testing
 
-### Run Integration Tests
+### Run All Tests (Recommended)
 ```bash
-pytest tests/ -v
+./setup_and_test.sh
 ```
 
-### Run Unit Tests
+### Run Integration Tests Only
 ```bash
-pytest tests/test_utils.py -v
+python -m pytest src/tests/test_integration.py -v
+```
+
+### Run Unit Tests Only
+```bash
+python -m pytest src/tests/test_utils.py -v
 ```
 
 ### Test Coverage:
@@ -151,6 +203,7 @@ pytest tests/test_utils.py -v
 - ✅ Sentiment analysis
 - ✅ Customer banning logic
 - ✅ Utility functions
+- ✅ S3 event notifications and permissions
 
 ## 🔍 Key Features
 
@@ -172,6 +225,7 @@ pytest tests/test_utils.py -v
 ✅ **Integration Tests**: Automated pipeline verification  
 ✅ **Review Fields**: summary, reviewText, overall analysis  
 ✅ **Customer Banning**: >3 unpolite reviews = banned  
+✅ **Intermediate Buckets**: reviews-preprocessed, reviews-checked for pipeline chaining
 
 ## 🛠️ Development
 
